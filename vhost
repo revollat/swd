@@ -2,16 +2,52 @@ server {
   listen   80;
 
   root /home/vagrant/code;
-  index index.php index.html index.htm;
+  index front.php;
 
   # Make site accessible from http://localhost/
   server_name _;
 
-  location / {
-    # First attempt to serve request as file, then
-    # as directory, then fall back to index.html
-    try_files $uri $uri/ /index.html;
-  }
+    location / {
+        # try to serve file directly, fallback to front controller
+        try_files $uri /front.php$is_args$args;
+    }
+
+    # If you have 2 front controllers for dev|prod use the following line instead
+    # location ~ ^/(front|front_dev)\.php(/|$) {
+    location ~ ^/front\.php(/|$) {
+        # the ubuntu default
+        fastcgi_pass unix:/var/run/php5-fpm.sock;
+        # for running on centos
+        #fastcgi_pass   unix:/var/run/php-fpm/www.sock;
+
+        fastcgi_split_path_info ^(.+\.php)(/.*)$;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param HTTPS off;
+
+        # Prevents URIs that include the front controller. This will 404:
+        # http://domain.tld/index.php/some-path
+        # Enable the internal directive to disable URIs like this
+        # internal;
+    }
+
+    #return 404 for all php files as we do have a front controller
+    #location ~ \.php$ {
+    #    return 404;
+    #}
+
+
+
+
+
+
+
+
+  #location / {
+  #  # First attempt to serve request as file, then
+  #  # as directory, then fall back to index.html
+  #  try_files $uri $uri/ /index.html;
+  #}
 
   location /doc/ {
     alias /usr/share/doc/;
@@ -29,13 +65,13 @@ server {
 
   # pass the PHP scripts to FastCGI server listening on /tmp/php5-fpm.sock
   #
-  location ~ \.php$ {
-    try_files $uri =404;
-    fastcgi_split_path_info ^(.+\.php)(/.+)$;
-    fastcgi_pass unix:/var/run/php5-fpm.sock;
-    fastcgi_index index.php;
-    include fastcgi_params;
-  }
+  #location ~ \.php$ {
+  #  try_files $uri =404;
+  #  fastcgi_split_path_info ^(.+\.php)(/.+)$;
+  #  fastcgi_pass unix:/var/run/php5-fpm.sock;
+  #  fastcgi_index index.php;
+  #  include fastcgi_params;
+  #}
 
   # deny access to .htaccess files, if Apache's document root
   # concurs with nginx's one
